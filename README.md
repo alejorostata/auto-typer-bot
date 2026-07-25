@@ -6,7 +6,7 @@ A high-performance, cross-platform Auto-Typer application powered by Python, PyW
 
 ## 🚀 Quick Start (Zero Configuration)
 
-Ensure that **Python 3.8 or higher** is installed on your computer. Open a terminal in the project directory, and execute the following command to launch the application:
+Ensure that **Python 3.8 or higher** is installed on your computer. Open a terminal in the project folder, and execute the following command to launch the application:
 
 ```bash
 python main.py
@@ -18,7 +18,7 @@ python main.py
 
 ## 🔧 Manual Installation & Troubleshooting
 
-If automatic package installation fails due to strict firewall rules, offline environments, or corporate proxies, you can manually install all required dependencies:
+If automatic package installation fails due to strict firewall rules, offline environments, or corporate proxies, you can manually install all required dependencies be executing the following command in your terminal inside the project folder:
 
 ```bash
 pip install -r requirements.txt
