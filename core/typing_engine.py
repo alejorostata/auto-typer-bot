@@ -32,7 +32,8 @@ class AutoTyperEngine:
         self.on_text_updated_callback = None
 
         self.word_queue = []
-        self.typed_words_set = set()
+        self.typed_words_list = []
+        self.initial_words_list = []
         self.lock = threading.Lock()
         self.start_time = None
         self.total_typed_words = 0
@@ -51,7 +52,8 @@ class AutoTyperEngine:
 
         with self.lock:
             self.word_queue = list(words)
-            self.typed_words_set = set()
+            self.initial_words_list = list(words)
+            self.typed_words_list = []
             self.total_typed_words = 0
             self.start_time = time.time()
             self.target_hwnd = target_hwnd
@@ -126,7 +128,7 @@ class AutoTyperEngine:
 
                 with self.lock:
                     self.total_typed_words += 1
-                    self.typed_words_set.add(current_word)
+                    self.typed_words_list.append(current_word)
                     words_typed = self.total_typed_words
                     total_words = words_typed + len(self.word_queue)
 
@@ -136,9 +138,9 @@ class AutoTyperEngine:
                 if self.on_progress_callback:
                     self.on_progress_callback(words_typed, total_words, live_wpm, current_word)
 
-                # Continuous background screen re-scan every 2.5 seconds during scrolling typing tests
+                # Continuous background screen re-scan every 3.0 seconds during scrolling typing tests
                 if self.continuous_mode and ocr_engine and target_hwnd:
-                    if (time.time() - last_rescan_time) > 2.5:
+                    if (time.time() - last_rescan_time) > 3.0:
                         self._perform_queue_rescan(ocr_engine, target_hwnd)
                         last_rescan_time = time.time()
 
@@ -150,26 +152,46 @@ class AutoTyperEngine:
                 self.on_error_callback(str(e))
 
     def _perform_queue_rescan(self, ocr_engine, target_hwnd):
-        """Scans active screen area and appends newly scrolled words to queue."""
+        """
+        Scans active screen area and appends newly scrolled words to queue.
+        Safely ignores OCR cursor artifacts (|thinking, lthinking) and prevents passage corruption.
+        """
         try:
             fresh_text = ocr_engine.extract_passage_from_window(target_hwnd)
             if not fresh_text:
                 return False
 
             fresh_words = fresh_text.split()
+            if not fresh_words:
+                return False
+
             added_count = 0
 
             with self.lock:
-                existing_set = set(self.word_queue) | self.typed_words_set
-                new_words_to_add = [w for w in fresh_words if w not in existing_set]
+                # Find if brand new words appear at the end of the freshly scanned text
+                # Compare against all known words in current initial_words_list
+                known_words_set = set(self.initial_words_list)
                 
-                if new_words_to_add:
-                    self.word_queue.extend(new_words_to_add)
-                    added_count = len(new_words_to_add)
-                    full_updated_passage = " ".join(list(self.typed_words_set) + self.word_queue)
-                    
-                    if self.on_text_updated_callback:
-                        self.on_text_updated_callback(full_updated_passage)
+                # Filter out newly scanned words that are already in the initial passage
+                new_scrolled_words = [w for w in fresh_words if w not in known_words_set]
+
+                # Only append if there are genuine new words extending past the initial passage
+                if new_scrolled_words:
+                    # Clean any leading cursor artifacts from new words
+                    clean_new_words = []
+                    for w in new_scrolled_words:
+                        clean_w = w.lstrip('l|I')
+                        if clean_w:
+                            clean_new_words.append(clean_w)
+
+                    if clean_new_words:
+                        self.word_queue.extend(clean_new_words)
+                        self.initial_words_list.extend(clean_new_words)
+                        added_count = len(clean_new_words)
+                        
+                        full_updated_passage = " ".join(self.initial_words_list)
+                        if self.on_text_updated_callback:
+                            self.on_text_updated_callback(full_updated_passage)
 
             return added_count > 0
         except Exception as e:

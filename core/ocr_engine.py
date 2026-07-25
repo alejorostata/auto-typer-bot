@@ -217,10 +217,16 @@ class ScreenOCR:
         i = 0
         while i < len(words):
             w = words[i]
+            
+            # Clean leading/trailing pipe or vertical cursor symbols (e.g. '|thinking', 'thinking|')
+            w = re.sub(r'^[|\\]+', '', w)
+            w = re.sub(r'[|\\]+$', '', w)
+
             if len(w) == 1 and w.lower() not in ['a', 'i'] and (i + 1 < len(words)):
                 i += 1
                 continue
-            cleaned_words.append(w)
+            if w:
+                cleaned_words.append(w)
             i += 1
 
         final_str = " ".join(cleaned_words)
