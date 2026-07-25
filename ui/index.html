@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto-Typer Bot</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ==================== 1. HEADER PART (Fixed at Top) ==================== -->
+  <header class="app-header-container">
+    <!-- Title & Status Row -->
+    <div class="app-header-top">
+      <div class="app-title">⚡ Auto-Typer Bot</div>
+      <div class="header-controls">
+        <button class="theme-toggle-btn" id="themeToggleBtn">🌙 Dark Mode</button>
+        <span class="status-badge" id="statusBadge">READY</span>
+      </div>
+    </div>
+
+    <!-- Target Application Selection Card -->
+    <section class="card header-card">
+      <div class="card-header-row">
+        <div class="card-title">🎯 Target Application Window</div>
+        <span class="info-icon" title="Select the application window where you want the bot to type the text.">ℹ</span>
+      </div>
+      <div class="target-row">
+        <select class="window-select" id="windowSelect" title="Select target application window">
+          <option value="">Scanning open desktop windows...</option>
+        </select>
+        <button class="btn-secondary" id="refreshBtn">🔄 Refresh List</button>
+      </div>
+    </section>
+
+    <!-- Typing Speed & Scanning Options Card -->
+    <section class="card header-card">
+      <div class="card-title">⚙️ Typing Speed & Scanning Options</div>
+      <div class="settings-grid">
+        <div class="input-group" title="Set minimum typing speed in Words Per Minute">
+          <label>Min WPM:</label>
+          <input type="number" class="num-input" id="minWpm" value="80" min="20" max="300">
+        </div>
+
+        <div class="input-group" title="Set maximum typing speed in Words Per Minute">
+          <label>Max WPM:</label>
+          <input type="number" class="num-input" id="maxWpm" value="120" min="20" max="350">
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <label class="switch-group" title="Randomizes typing speed and adds subtle micro-pauses between keystrokes to mimic natural human typing and bypass anti-bot detectors.">
+            <div class="switch">
+              <input type="checkbox" id="humanJitter" checked>
+              <span class="slider"></span>
+            </div>
+            Human Micro-Jitter
+          </label>
+          <span class="info-icon" title="Randomizes typing speed and adds subtle micro-pauses between keystrokes to mimic natural human typing and bypass anti-bot detectors.">ℹ</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <label class="switch-group" title="Automatically re-scans the screen as text scrolls during timed typing tests, continuously adding new words to the queue without stopping.">
+            <div class="switch">
+              <input type="checkbox" id="autoRescan" checked>
+              <span class="slider"></span>
+            </div>
+            Auto Continuous Re-Scan
+          </label>
+          <span class="info-icon" title="Automatically re-scans the screen as text scrolls during timed typing tests, continuously adding new words to the queue without stopping.">ℹ</span>
+        </div>
+      </div>
+    </section>
+  </header>
+
+  <!-- ==================== 2. BODY CONTENT (Text Stream - Fills Remaining Space) ==================== -->
+  <main class="main-body-content">
+    <section class="card dual-card">
+      <div class="stream-header">
+        <div class="card-title">📺 Text Stream (Screen Reader vs Active Typing)</div>
+        <button class="btn-primary" id="selectAreaBtn" title="Drag a selection box on any monitor to crop the passage text">🎯 Select Screen Area</button>
+      </div>
+
+      <div class="panes-grid">
+        <!-- Left Pane -->
+        <div class="pane">
+          <div class="pane-header">
+            <div class="pane-label">👁️ Detected Text (Editable):</div>
+            <button class="preview-chip-btn" id="toggleCropBtn">📷 View Crop Preview</button>
+          </div>
+
+          <textarea class="stream-box" id="visionStream" placeholder="Captured text will appear here..."></textarea>
+
+          <!-- Collapsible Crop Drawer -->
+          <div class="crop-drawer" id="cropDrawer">
+            <img id="cropPreviewImg" class="crop-preview-img" src="">
+          </div>
+        </div>
+
+        <!-- Right Pane -->
+        <div class="pane">
+          <div class="pane-label">⌨️ Active Typing Progress:</div>
+          <textarea class="stream-box" id="typingStream" readonly placeholder="Active typed words will stream here..."></textarea>
+        </div>
+      </div>
+
+      <div id="statusText" style="font-size: 12px; color: var(--text-muted);">
+        Ready. Click '🎯 Select Screen Area' to draw selection box on any monitor.
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== 3. FOOTER PART (Fixed at Bottom) ==================== -->
+  <footer class="app-footer-container">
+    <section class="card controls-card">
+      <div class="controls-row">
+        <div class="btn-group">
+          <button class="btn-start" id="startBtn">⚡ START TYPING</button>
+          <button class="btn-secondary" id="pauseBtn" disabled>⏸ Pause</button>
+          <button class="btn-danger" id="stopBtn" disabled>🛑 STOP</button>
+        </div>
+        <div style="font-size: 12px; font-style: italic; color: var(--text-muted);">
+          💡 Emergency Stop: Press [ESC] key anytime
+        </div>
+      </div>
+
+      <div class="progress-container">
+        <div class="progress-bar-fill" id="progressBarFill"></div>
+      </div>
+
+      <div class="telemetry-row">
+        <span id="liveWpm" style="color: var(--accent-color); font-weight: 700;">Live Speed: -- WPM</span>
+        <span id="progressText" style="color: var(--text-muted);">Typed: 0 / 0 words (0%)</span>
+      </div>
+    </section>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
