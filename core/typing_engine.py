@@ -79,8 +79,6 @@ class AutoTyperEngine:
                 WindowManager.focus_window(target_hwnd)
                 time.sleep(0.3)
 
-            last_rescan_time = time.time()
-
             while not self._stop_event.is_set():
                 while self._pause_event.is_set():
                     time.sleep(0.1)
@@ -93,7 +91,7 @@ class AutoTyperEngine:
                         current_word = self.word_queue.pop(0)
 
                 if not current_word:
-                    # Queue is empty. Perform continuous screen re-scan if enabled
+                    # Initial queue is empty! Now (and ONLY now) check if new text scrolled into view
                     if self.continuous_mode and ocr_engine and target_hwnd:
                         new_words = self._perform_queue_rescan(ocr_engine, target_hwnd)
                         if new_words:
@@ -138,12 +136,6 @@ class AutoTyperEngine:
                 if self.on_progress_callback:
                     self.on_progress_callback(words_typed, total_words, live_wpm, current_word)
 
-                # Continuous background screen re-scan every 3.0 seconds during scrolling typing tests
-                if self.continuous_mode and ocr_engine and target_hwnd:
-                    if (time.time() - last_rescan_time) > 3.0:
-                        self._perform_queue_rescan(ocr_engine, target_hwnd)
-                        last_rescan_time = time.time()
-
             if self.on_complete_callback and not self._stop_event.is_set():
                 self.on_complete_callback(self.total_typed_words)
 
@@ -153,8 +145,8 @@ class AutoTyperEngine:
 
     def _perform_queue_rescan(self, ocr_engine, target_hwnd):
         """
-        Scans active screen area and appends newly scrolled words to queue.
-        Safely ignores OCR cursor artifacts (|thinking, lthinking) and prevents passage corruption.
+        Triggers ONLY after current passage queue reaches 0.
+        Scans active screen area for newly scrolled lines/passages.
         """
         try:
             fresh_text = ocr_engine.extract_passage_from_window(target_hwnd)
@@ -168,16 +160,10 @@ class AutoTyperEngine:
             added_count = 0
 
             with self.lock:
-                # Find if brand new words appear at the end of the freshly scanned text
-                # Compare against all known words in current initial_words_list
                 known_words_set = set(self.initial_words_list)
-                
-                # Filter out newly scanned words that are already in the initial passage
                 new_scrolled_words = [w for w in fresh_words if w not in known_words_set]
 
-                # Only append if there are genuine new words extending past the initial passage
                 if new_scrolled_words:
-                    # Clean any leading cursor artifacts from new words
                     clean_new_words = []
                     for w in new_scrolled_words:
                         clean_w = w.lstrip('l|I')
