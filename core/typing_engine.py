@@ -146,7 +146,7 @@ class AutoTyperEngine:
     def _perform_queue_rescan(self, ocr_engine, target_hwnd):
         """
         Triggers ONLY after current passage queue reaches 0.
-        Scans active screen area for newly scrolled lines/passages.
+        Scans active screen area for newly scrolled lines/passages without corrupting words.
         """
         try:
             fresh_text = ocr_engine.extract_passage_from_window(target_hwnd)
@@ -164,20 +164,13 @@ class AutoTyperEngine:
                 new_scrolled_words = [w for w in fresh_words if w not in known_words_set]
 
                 if new_scrolled_words:
-                    clean_new_words = []
-                    for w in new_scrolled_words:
-                        clean_w = w.lstrip('l|I')
-                        if clean_w:
-                            clean_new_words.append(clean_w)
-
-                    if clean_new_words:
-                        self.word_queue.extend(clean_new_words)
-                        self.initial_words_list.extend(clean_new_words)
-                        added_count = len(clean_new_words)
-                        
-                        full_updated_passage = " ".join(self.initial_words_list)
-                        if self.on_text_updated_callback:
-                            self.on_text_updated_callback(full_updated_passage)
+                    self.word_queue.extend(new_scrolled_words)
+                    self.initial_words_list.extend(new_scrolled_words)
+                    added_count = len(new_scrolled_words)
+                    
+                    full_updated_passage = " ".join(self.initial_words_list)
+                    if self.on_text_updated_callback:
+                        self.on_text_updated_callback(full_updated_passage)
 
             return added_count > 0
         except Exception as e:

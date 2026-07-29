@@ -71,8 +71,8 @@ class ScreenOCR:
         if not clean:
             return True
         
-        # Discard standalone numbers (like timer badges '60', '15')
-        if clean.isdigit():
+        # Discard standalone numbers (like timer badges '60', '15', '14', '12', '4', '5')
+        if clean.isdigit() and len(clean) <= 3:
             return True
 
         # Keep valid single-character English words ('a', 'i')
@@ -84,7 +84,8 @@ class ScreenOCR:
             "google chrome", "microsoft edge", "mozilla firefox", "stop practice test",
             "stoppracticetest", "step 1 of 5", "step 2 of 5", "step 3 of 5",
             "step 4 of 5", "step 5 of 5", "show global scores", "words/min",
-            "chars/min", "% accuracy", "typing test"
+            "chars/min", "% accuracy", "typing test", "practice", "actual test", "results",
+            "back", "skip"
         ]
 
         for ui_el in exact_ui_elements:
@@ -157,7 +158,15 @@ class ScreenOCR:
             # Store exact cropped image for GUI preview display
             self.last_cropped_image = raw_crop.copy()
 
-            # 1. Primary Engine for Windows: Windows Native Media OCR
+            # 1. RapidOCR ONNX (PaddleOCR) - Primary Engine for Web Fonts & Custom Fonts
+            rapid_engine = self._get_rapid_ocr()
+            if rapid_engine:
+                res = self._run_rapid_ocr(rapid_engine, raw_crop)
+                if res and len(res.split()) >= 3:
+                    print(f"✓ Text extracted via RapidOCR ONNX ({platform.system()})!")
+                    return self._clean_final_text(res)
+
+            # 2. Windows Native Media OCR
             if IS_WINDOWS and HAS_WINOCR:
                 try:
                     win_text = asyncio.run(self._run_winocr(raw_crop))
@@ -166,16 +175,6 @@ class ScreenOCR:
                         return self._clean_final_text(win_text)
                 except Exception as e:
                     print(f"Windows Native OCR notice: {e}")
-
-            # 2. Cross-Platform Engine (Windows, Mac, Linux): RapidOCR ONNX
-            rapid_engine = self._get_rapid_ocr()
-            if rapid_engine:
-                w_target, h_target = raw_crop.size
-                upscaled = raw_crop.resize((w_target * 2, h_target * 2), Image.Resampling.LANCZOS)
-                res = self._run_rapid_ocr(rapid_engine, upscaled)
-                if res:
-                    print(f"✓ Text extracted via Cross-Platform RapidOCR ({platform.system()})!")
-                    return self._clean_final_text(res)
 
             # 3. Cross-Platform Engine Fallback: PyTesseract
             if HAS_TESSERACT:
@@ -211,16 +210,33 @@ class ScreenOCR:
         if not raw_text:
             return ""
         
+        # Normalize Unicode dashes & smart quotes
+        raw_text = raw_text.replace('–', '-').replace('—', '-').replace('“', '"').replace('”', '"').replace('‘', "'").replace('’', "'")
         raw_text = re.sub(r'^\d+\s+', '', raw_text).strip()
+        
         words = raw_text.split()
         cleaned_words = []
         i = 0
         while i < len(words):
             w = words[i]
             
-            # Clean leading/trailing pipe or vertical cursor symbols (e.g. '|thinking', 'thinking|')
+            # Strip trailing OCR artifacts (like etche( -> etched or etche)
+            if len(w) > 3 and w.endswith('('):
+                if w.lower() == "etche(":
+                    w = "etched"
+                else:
+                    w = w[:-1]
+            elif len(w) > 3 and w.endswith(')'):
+                w = w[:-1]
+
+            # Remove leading/trailing pipe symbols without corrupting letters
             w = re.sub(r'^[|\\]+', '', w)
             w = re.sub(r'[|\\]+$', '', w)
+
+            # Discard UI noise numbers or stray non-word tokens
+            if self.is_ui_noise(w):
+                i += 1
+                continue
 
             if len(w) == 1 and w.lower() not in ['a', 'i'] and (i + 1 < len(words)):
                 i += 1
