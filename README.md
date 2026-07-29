@@ -1,6 +1,6 @@
 # Auto-Typer Bot ⚡
 
-A high-performance, cross-platform Auto-Typer application powered by Python, PyWebView, and Screen Vision OCR. Designed for automated typing tests, data entry simulation, and accessibility automation across **Windows, macOS, and Linux**.
+A cross-platform Auto-Typer application powered by Python, PyWebView, and Screen Vision OCR. Designed for automated typing tests, data entry simulation, and accessibility automation across **Windows, macOS, and Linux**.
 
 ---
 
@@ -72,6 +72,7 @@ python -m unittest discover tests
 
 - **🎯 Cross-Platform Multi-Monitor Crop**: Drag a red selection box on any monitor (including secondary portrait monitors) to crop target passage text.
 - **⚡ Human Micro-Jitter**: Simulates natural human typing variations and subtle micro-pauses between keystrokes to bypass anti-bot detectors.
-- **🔄 Auto Continuous Re-Scan**: Continuously scans the screen as text scrolls during timed typing tests, feeding new words into the queue automatically.
+- **🔄 Queue-Drain Continuous Re-Scan**: Intelligently scans the screen for newly scrolled text *only* when the current passage is completely typed, ensuring 100% flawless typing accuracy without mid-passage OCR noise.
+- **👁️ Raw Crop Precision OCR**: Employs raw screen crops directly to native OCR engines, preventing contrast distortion and guaranteeing razor-sharp character extraction for custom web fonts.
 - **🌙 Light & Dark Themes**: Sleek UI with native OS tooltips and dark mode support.
 - **🛑 Emergency Stop**: Press the `[ESC]` key at any time to immediately abort active typing.
